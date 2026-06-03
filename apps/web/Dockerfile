@@ -14,7 +14,7 @@ FROM caddy:2-alpine AS web
 
 WORKDIR /srv
 
-COPY apps/web/Caddyfile /etc/caddy/Caddyfile
+COPY Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /app/apps/web/dist ./dist
 
 EXPOSE 3000
