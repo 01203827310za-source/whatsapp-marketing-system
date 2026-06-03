@@ -20,6 +20,13 @@ export const createApp = () => {
 
   app.use(helmet());
   app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
+  app.get("/", (_req, res) => {
+  res.json({
+    name: "WhatsApp Marketing System",
+    status: "running",
+    version: "1.0.0"
+  });
+});
   app.use(compression());
   app.use(cookieParser());
   app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
