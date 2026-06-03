@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
-    "prisma": "^5.22.0"
+    "prisma": "^5.22.0",
+    "serve": "^14.2.6"
   }
 }
