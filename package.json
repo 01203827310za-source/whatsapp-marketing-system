@@ -1,0 +1,22 @@
+{
+  "name": "clothing-factory-whatsapp-marketing",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @factory/shared && npm run build --workspace @factory/api && npm run build --workspace @factory/web",
+    "dev": "npm run dev --workspace @factory/api & npm run dev --workspace @factory/web",
+    "lint": "npm run lint --workspaces",
+    "test": "npm run test --workspaces",
+    "typecheck": "npm run build --workspace @factory/shared && npm run typecheck --workspace @factory/api && npm run typecheck --workspace @factory/web",
+    "db:generate": "npm run db:generate --workspace @factory/api",
+    "db:migrate": "npm run db:migrate --workspace @factory/api",
+    "worker": "npm run worker --workspace @factory/api"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}

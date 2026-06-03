@@ -1,0 +1,13 @@
+process.env.NODE_ENV = "test";
+process.env.PORT = "4000";
+process.env.DATABASE_URL = "postgresql://postgres:postgres@localhost:5433/factory_test";
+process.env.REDIS_URL = "memory";
+process.env.JWT_ACCESS_SECRET = "test-access-secret-test-access-secret";
+process.env.JWT_REFRESH_SECRET = "test-refresh-secret-test-refresh-secret";
+process.env.WHATSAPP_VERIFY_TOKEN = "verify-token";
+process.env.WHATSAPP_APP_SECRET = "app-secret";
+process.env.WHATSAPP_ACCESS_TOKEN = "access-token";
+process.env.WHATSAPP_PHONE_NUMBER_ID = "123";
+process.env.CLOUDINARY_CLOUD_NAME = "cloud";
+process.env.CLOUDINARY_API_KEY = "key";
+process.env.CLOUDINARY_API_SECRET = "secret";

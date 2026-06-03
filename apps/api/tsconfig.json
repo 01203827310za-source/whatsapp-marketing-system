@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "outDir": "dist",
+    "rootDir": "src",
+    "types": ["node", "vitest"],
+    "paths": {
+      "@factory/shared": ["packages/shared/dist"]
+    }
+  },
+  "include": ["src"]
+}

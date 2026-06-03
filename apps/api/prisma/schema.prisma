@@ -1,0 +1,175 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  MANAGER
+  MARKETING_EMPLOYEE
+}
+
+enum CampaignType {
+  NEW_MODEL
+  DISCOUNT
+  OFFER
+  ANNOUNCEMENT
+}
+
+enum CampaignStatus {
+  DRAFT
+  QUEUED
+  SENDING
+  SENT
+  FAILED
+  CANCELLED
+}
+
+enum DeliveryStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+model User {
+  id           String         @id @default(cuid())
+  email        String         @unique
+  name         String
+  passwordHash String
+  role         Role           @default(MARKETING_EMPLOYEE)
+  isActive     Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  refreshTokens RefreshToken[]
+  auditLogs    AuditLog[]
+  campaigns    Campaign[]     @relation("CampaignCreator")
+}
+
+model RefreshToken {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime @default(now())
+}
+
+model Customer {
+  id               String              @id @default(cuid())
+  phone            String              @unique
+  name             String?
+  notes            String?
+  isSubscribed     Boolean             @default(false)
+  subscriptionDate DateTime?
+  lastMessageAt    DateTime?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  messages         Message[]
+  recipients       CampaignRecipient[]
+
+  @@index([isSubscribed])
+  @@index([createdAt])
+}
+
+model Campaign {
+  id          String              @id @default(cuid())
+  type        CampaignType
+  title       String
+  message     String
+  imageUrl    String?
+  status      CampaignStatus      @default(DRAFT)
+  createdById String
+  createdBy   User                @relation("CampaignCreator", fields: [createdById], references: [id])
+  sentAt      DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  recipients  CampaignRecipient[]
+  messages    Message[]
+  productAnnouncement ProductAnnouncement?
+}
+
+model CampaignRecipient {
+  id          String         @id @default(cuid())
+  campaignId  String
+  customerId  String
+  campaign    Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  customer    Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  status      DeliveryStatus @default(PENDING)
+  attempts    Int            @default(0)
+  providerMessageId String?
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  failedAt    DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([campaignId, customerId])
+  @@index([status])
+}
+
+model Message {
+  id                String           @id @default(cuid())
+  customerId        String
+  customer          Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  campaignId        String?
+  campaign          Campaign?        @relation(fields: [campaignId], references: [id])
+  direction         MessageDirection
+  body              String
+  mediaUrl          String?
+  providerMessageId String?          @unique
+  status            DeliveryStatus?
+  rawPayload        Json?
+  createdAt         DateTime         @default(now())
+
+  @@index([createdAt])
+  @@index([providerMessageId])
+}
+
+model ProductAnnouncement {
+  id            String   @id @default(cuid())
+  productName   String
+  description   String
+  price         Decimal  @db.Decimal(10, 2)
+  discountPrice Decimal? @db.Decimal(10, 2)
+  imageUrl      String
+  campaignId    String?  @unique
+  campaign      Campaign? @relation(fields: [campaignId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+model WebhookLog {
+  id        String   @id @default(cuid())
+  provider  String
+  eventType String
+  payload   Json
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
