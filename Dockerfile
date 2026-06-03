@@ -1,8 +1,8 @@
-FROM node:20-alpine AS base
+FROM node:20-bookworm-slim AS base
 
 WORKDIR /app
 
-RUN apk add --no-cache openssl
+RUN apt-get update && apt-get install -y openssl
 
 COPY package*.json ./
 COPY apps/api/package.json apps/api/package.json
