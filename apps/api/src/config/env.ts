@@ -29,7 +29,7 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(32),
   JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
   JWT_REFRESH_DAYS: z.coerce.number().default(30),
-  CORS_ORIGIN: z.string().default("http://localhost:5173"),
+  CORS_ORIGIN: z.string().optional(),
   WHATSAPP_VERIFY_TOKEN: z.string().min(8).refine((value) => value !== placeholderEnvValue),
   WHATSAPP_APP_SECRET: z.string().min(8).refine((value) => value !== placeholderEnvValue),
   WHATSAPP_ACCESS_TOKEN: z.string().min(8).refine((value) => value !== placeholderEnvValue),
@@ -42,3 +42,7 @@ const envSchema = z.object({
 });
 
 export const env = envSchema.parse(process.env);
+export const corsOrigins =
+  env.CORS_ORIGIN?.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean) ?? [];

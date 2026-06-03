@@ -14,6 +14,7 @@
     "typecheck": "npm run build --workspace @factory/shared && npm run typecheck --workspace @factory/api && npm run typecheck --workspace @factory/web",
     "db:generate": "npm run db:generate --workspace @factory/api",
     "db:migrate": "npm run db:migrate --workspace @factory/api",
+    "db:deploy": "npm run db:deploy --workspace @factory/api",
     "worker": "npm run worker --workspace @factory/api"
   },
   "devDependencies": {
@@ -21,7 +22,6 @@
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
-    "prisma": "^5.22.0",
-    "serve": "^14.2.6"
+    "prisma": "^5.22.0"
   }
 }

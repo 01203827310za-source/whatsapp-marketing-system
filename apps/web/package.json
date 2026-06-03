@@ -12,7 +12,6 @@
     "lint": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@factory/shared": "1.0.0",
     "@hookform/resolvers": "^3.6.0",
     "@tanstack/react-query": "^5.40.1",
     "axios": "^1.7.2",
@@ -22,7 +21,6 @@
     "react-hook-form": "^7.51.5",
     "react-router-dom": "^6.23.1",
     "recharts": "^2.12.7",
-    "serve": "^14.2.6",
     "zod": "^3.23.8",
     "zustand": "^4.5.2"
   },

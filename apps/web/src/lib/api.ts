@@ -1,8 +1,14 @@
 import axios from "axios";
 import { useAuthStore } from "../store/auth.store";
 
+const apiUrl = import.meta.env.VITE_API_URL;
+
+if (!apiUrl) {
+  throw new Error("VITE_API_URL is required");
+}
+
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:4000",
+  baseURL: apiUrl,
   timeout: 15_000
 });
 

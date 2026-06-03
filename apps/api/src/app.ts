@@ -5,7 +5,7 @@ import express from "express";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import morgan from "morgan";
-import { env } from "./config/env";
+import { corsOrigins, env } from "./config/env";
 import { errorMiddleware } from "./middlewares/error.middleware";
 import { authRouter } from "./routes/auth.routes";
 import { campaignRouter } from "./routes/campaign.routes";
@@ -19,14 +19,22 @@ export const createApp = () => {
   const app = express();
 
   app.use(helmet());
-  app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
+  app.use(
+    cors({
+      credentials: true,
+      origin: (origin, callback) => {
+        if (!origin || corsOrigins.includes(origin)) return callback(null, true);
+        return callback(new Error("Not allowed by CORS"));
+      }
+    })
+  );
   app.get("/", (_req, res) => {
-  res.json({
-    name: "WhatsApp Marketing System",
-    status: "running",
-    version: "1.0.0"
+    res.json({
+      name: "WhatsApp Marketing System",
+      status: "running",
+      version: "1.0.0"
+    });
   });
-});
   app.use(compression());
   app.use(cookieParser());
   app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));

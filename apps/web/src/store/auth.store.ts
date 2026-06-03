@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { AuthUser } from "@factory/shared";
+import type { AuthUser } from "../types/auth";
 
 interface AuthState {
   user?: AuthUser;
