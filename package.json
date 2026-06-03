@@ -15,6 +15,7 @@
     "db:generate": "npm run db:generate --workspace @factory/api",
     "db:migrate": "npm run db:migrate --workspace @factory/api",
     "db:deploy": "npm run db:deploy --workspace @factory/api",
+    "db:seed": "npm run seed --workspace @factory/api",
     "worker": "npm run worker --workspace @factory/api"
   },
   "devDependencies": {

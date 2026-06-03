@@ -1,19 +1,28 @@
-import bcrypt from "bcrypt";
 import { Role } from "@prisma/client";
 import { prisma } from "../config/prisma";
+import { hashPassword } from "../utils/password";
+
+const ownerEmail = "owner@example.com";
+const ownerPassword = "ChangeMe123!";
 
 const main = async () => {
-  const passwordHash = await bcrypt.hash(process.env.SEED_OWNER_PASSWORD ?? "ChangeMe123!", 12);
-  await prisma.user.upsert({
-    where: { email: process.env.SEED_OWNER_EMAIL ?? "owner@example.com" },
-    update: {},
-    create: {
-      email: process.env.SEED_OWNER_EMAIL ?? "owner@example.com",
-      name: "Owner",
+  const existingOwner = await prisma.user.findUnique({ where: { email: ownerEmail } });
+  if (existingOwner) {
+    console.log(`Owner user already exists: ${ownerEmail}`);
+    return;
+  }
+
+  const passwordHash = await hashPassword(ownerPassword);
+  await prisma.user.create({
+    data: {
+      email: ownerEmail,
+      name: "System Owner",
       role: Role.OWNER,
       passwordHash
     }
   });
+
+  console.log(`Owner user created: ${ownerEmail}`);
 };
 
 main()

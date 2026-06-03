@@ -1,9 +1,9 @@
-import bcrypt from "bcrypt";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env";
 import { userRepository } from "../repositories/user.repository";
 import { HttpError } from "../utils/http";
+import { verifyPassword } from "../utils/password";
 import type { AuthUser } from "@factory/shared";
 
 const hashToken = (token: string) => crypto.createHash("sha256").update(token).digest("hex");
@@ -22,7 +22,7 @@ export const authService = {
     const user = await userRepository.findByEmail(email);
     if (!user || !user.isActive) throw new HttpError(401, "Invalid credentials");
 
-    const validPassword = await bcrypt.compare(password, user.passwordHash);
+    const validPassword = await verifyPassword(password, user.passwordHash);
     if (!validPassword) throw new HttpError(401, "Invalid credentials");
 
     const authUser: AuthUser = { id: user.id, email: user.email, name: user.name, role: user.role };
