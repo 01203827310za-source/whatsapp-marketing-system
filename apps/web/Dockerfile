@@ -2,20 +2,41 @@ FROM node:20-bookworm-slim AS build
 
 WORKDIR /app
 
-COPY package.json package-lock.json tsconfig.base.json ./
-COPY packages/shared ./packages/shared
-COPY apps/web ./apps/web
+COPY package.json ./
+RUN npm install
 
-RUN npm ci --workspace @factory/web --workspace @factory/shared --include-workspace-root
+COPY . .
 
-RUN npm run build --workspace @factory/web
+RUN printf '%s\n' \
+  '{' \
+  '  "compilerOptions": {' \
+  '    "target": "ES2020",' \
+  '    "useDefineForClassFields": true,' \
+  '    "lib": ["ES2020", "DOM", "DOM.Iterable"],' \
+  '    "allowJs": false,' \
+  '    "skipLibCheck": true,' \
+  '    "esModuleInterop": true,' \
+  '    "allowSyntheticDefaultImports": true,' \
+  '    "strict": true,' \
+  '    "forceConsistentCasingInFileNames": true,' \
+  '    "module": "ESNext",' \
+  '    "moduleResolution": "Node",' \
+  '    "resolveJsonModule": true,' \
+  '    "isolatedModules": true,' \
+  '    "noEmit": true,' \
+  '    "baseUrl": "."' \
+  '  }' \
+  '}' \
+  > /tsconfig.base.json
+
+RUN npm run build
 
 FROM caddy:2-alpine AS web
 
 WORKDIR /srv
 
 COPY Caddyfile /etc/caddy/Caddyfile
-COPY --from=build /app/apps/web/dist ./dist
+COPY --from=build /app/dist ./dist
 
 EXPOSE 3000
 
