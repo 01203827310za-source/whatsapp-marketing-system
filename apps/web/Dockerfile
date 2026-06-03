@@ -2,22 +2,20 @@ FROM node:20-bookworm-slim AS build
 
 WORKDIR /app
 
-COPY package.json ./
-RUN npm install --ignore-scripts
+COPY package.json package-lock.json tsconfig.base.json ./
+COPY packages/shared ./packages/shared
+COPY apps/web ./apps/web
 
-COPY index.html ./
-COPY tsconfig.json vite.config.ts ./
-COPY postcss.config.js tailwind.config.ts ./
-COPY src ./src
+RUN npm ci --workspace @factory/web --workspace @factory/shared --include-workspace-root
 
-RUN npm run build
+RUN npm run build --workspace @factory/web
 
 FROM caddy:2-alpine AS web
 
 WORKDIR /srv
 
-COPY Caddyfile /etc/caddy/Caddyfile
-COPY --from=build /app/dist ./dist
+COPY apps/web/Caddyfile /etc/caddy/Caddyfile
+COPY --from=build /app/apps/web/dist ./dist
 
 EXPOSE 3000
 
