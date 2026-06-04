@@ -16,5 +16,6 @@ campaignRouter.get("/", requirePermission("campaigns:create"), asyncHandler(camp
 campaignRouter.post("/", requirePermission("campaigns:create"), validate(createCampaignSchema), asyncHandler(campaignController.create));
 campaignRouter.post("/discounts", requirePermission("campaigns:create"), validate(discountCampaignSchema), asyncHandler(campaignController.createDiscount));
 campaignRouter.post("/uploads", requirePermission("campaigns:create"), upload.single("image"), asyncHandler(campaignController.uploadImage));
+campaignRouter.get("/:id/recipients/summary", requirePermission("campaigns:create"), validate(idParamSchema), asyncHandler(campaignController.recipientSummary));
 campaignRouter.get("/:id", requirePermission("campaigns:create"), validate(idParamSchema), asyncHandler(campaignController.get));
 campaignRouter.post("/:id/send", requirePermission("campaigns:manage"), validate(idParamSchema), asyncHandler(campaignController.send));

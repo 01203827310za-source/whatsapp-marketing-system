@@ -38,3 +38,49 @@ export interface AuthUser {
   name: string;
   role: Role;
 }
+
+export interface CustomerSummary {
+  id: string;
+  phone: string;
+  name: string | null;
+  notes: string | null;
+  isSubscribed: boolean;
+  subscriptionDate: string | null;
+  lastMessageAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DeliveryStats {
+  total: number;
+  sent: number;
+  delivered: number;
+  read: number;
+  failed: number;
+  deliveryRate: number;
+  readRate: number;
+}
+
+export interface ProductCategorySummary {
+  id: string;
+  name: string;
+  _count?: { products: number };
+}
+
+export interface ProductImageSummary {
+  id: string;
+  imageUrl: string | null;
+  altText: string | null;
+  sortOrder: number;
+}
+
+export interface ProductSummary {
+  id: string;
+  productName: string;
+  description: string;
+  price: string | number;
+  discountPrice: string | number | null;
+  imageUrl: string;
+  category: ProductCategorySummary | null;
+  gallery: ProductImageSummary[];
+}

@@ -12,6 +12,7 @@ import { campaignRouter } from "./routes/campaign.routes";
 import { customerRouter } from "./routes/customer.routes";
 import { analyticsRouter } from "./routes/analytics.routes";
 import { productRouter } from "./routes/product.routes";
+import { settingsRouter } from "./routes/settings.routes";
 import { webhookRouter } from "./routes/webhook.routes";
 import { userRouter } from "./routes/user.routes";
 
@@ -62,6 +63,7 @@ export const createApp = () => {
   app.use("/api/products", productRouter);
   app.use("/api/analytics", analyticsRouter);
   app.use("/api/users", userRouter);
+  app.use("/api/settings", settingsRouter);
   app.use("/webhook/whatsapp", webhookRouter);
   app.use(errorMiddleware);
 

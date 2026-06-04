@@ -4,7 +4,14 @@ import { HttpError } from "../utils/http";
 
 export const errorMiddleware: ErrorRequestHandler = (error, _req, res, _next) => {
   if (error instanceof ZodError) {
-    return res.status(422).json({ message: "Validation failed", issues: error.flatten() });
+    return res.status(422).json({
+      message: "Validation failed",
+      details: error.issues.map((issue) => ({
+        field: issue.path.filter((path) => path !== "body" && path !== "params" && path !== "query").join("."),
+        message: issue.message
+      })),
+      issues: error.flatten()
+    });
   }
 
   if (error instanceof HttpError) {

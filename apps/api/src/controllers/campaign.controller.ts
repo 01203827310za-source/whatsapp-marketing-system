@@ -12,6 +12,9 @@ export const campaignController = {
   async get(req: Request, res: Response) {
     res.json(ok(await campaignService.get(req.params.id)));
   },
+  async recipientSummary(req: Request, res: Response) {
+    res.json(ok(await campaignService.recipientSummary(req.params.id)));
+  },
   async create(req: Request, res: Response) {
     if (!req.user) throw new HttpError(401, "Authentication required");
     const campaign = await campaignService.create({ ...req.body, createdById: req.user.id });

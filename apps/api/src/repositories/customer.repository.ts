@@ -28,45 +28,37 @@ export const customerRepository = {
         recipients: { include: { campaign: true }, orderBy: { createdAt: "desc" } }
       }
     }),
-  findByPhone: async (phone: string) => {
-    console.log("[customerRepository.findByPhone] lookup:", { phone });
-    try {
-      const existingCustomer = await prisma.customer.findUnique({ where: { phone } });
-      console.log("EXISTING CUSTOMER:", existingCustomer);
-      return existingCustomer;
-    } catch (error) {
-      console.error("[customerRepository.findByPhone] Prisma error:", error);
-      if (error instanceof Error) console.error(error.stack);
-      throw error;
-    }
+  findByPhone: (phone: string) => prisma.customer.findUnique({ where: { phone } }),
+  create: (data: Prisma.CustomerCreateInput) => prisma.customer.create({ data }),
+  upsertFromWhatsapp: (phone: string, name?: string) =>
+    prisma.customer.upsert({
+      where: { phone },
+      create: { phone, name, lastMessageAt: new Date() },
+      update: { name: name || undefined, lastMessageAt: new Date() }
+    }),
+  upsertImported: async (input: { phone: string; name?: string; notes?: string; isSubscribed?: boolean }) => {
+    const existing = await prisma.customer.findUnique({ where: { phone: input.phone }, select: { id: true } });
+    const customer = await prisma.customer.upsert({
+      where: { phone: input.phone },
+      create: {
+        phone: input.phone,
+        name: input.name || undefined,
+        notes: input.notes || undefined,
+        isSubscribed: Boolean(input.isSubscribed),
+        subscriptionDate: input.isSubscribed ? new Date() : undefined
+      },
+      update: {
+        name: input.name || undefined,
+        notes: input.notes || undefined,
+        isSubscribed: input.isSubscribed,
+        subscriptionDate: input.isSubscribed ? new Date() : undefined
+      }
+    });
+    return { customer, created: !existing };
   },
-  upsertFromWhatsapp: async (phone: string, name?: string) => {
-    console.log("[customerRepository.upsertFromWhatsapp] input:", { phone, name });
-    try {
-      const customer = await prisma.customer.upsert({
-        where: { phone },
-        create: { phone, name, lastMessageAt: new Date() },
-        update: { name: name || undefined, lastMessageAt: new Date() }
-      });
-      console.log("UPSERTED CUSTOMER:", customer);
-      return customer;
-    } catch (error) {
-      console.error("[customerRepository.upsertFromWhatsapp] Prisma error:", error);
-      if (error instanceof Error) console.error(error.stack);
-      throw error;
-    }
-  },
-  update: async (id: string, data: Prisma.CustomerUpdateInput) => {
-    console.log("[customerRepository.update] input:", { id, data });
-    try {
-      const customer = await prisma.customer.update({ where: { id }, data });
-      console.log("[customerRepository.update] result:", customer);
-      return customer;
-    } catch (error) {
-      console.error("[customerRepository.update] Prisma error:", error);
-      if (error instanceof Error) console.error(error.stack);
-      throw error;
-    }
-  },
+  update: (id: string, data: Prisma.CustomerUpdateInput) => prisma.customer.update({ where: { id }, data }),
+  delete: (id: string) => prisma.customer.delete({ where: { id } }),
+  exportAll: () => prisma.customer.findMany({ orderBy: { createdAt: "desc" } }),
+  recent: (take = 8) => prisma.customer.findMany({ orderBy: { createdAt: "desc" }, take }),
   subscribedCustomers: () => prisma.customer.findMany({ where: { isSubscribed: true } })
 };

@@ -144,11 +144,36 @@ model ProductAnnouncement {
   description   String
   price         Decimal  @db.Decimal(10, 2)
   discountPrice Decimal? @db.Decimal(10, 2)
-  imageUrl      String
+  imageUrl      String?
+  categoryId    String?
+  category      ProductCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   campaignId    String?  @unique
   campaign      Campaign? @relation(fields: [campaignId], references: [id])
+  gallery       ProductImage[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  @@index([categoryId])
+}
+
+model ProductCategory {
+  id        String                @id @default(cuid())
+  name      String                @unique
+  products  ProductAnnouncement[]
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+}
+
+model ProductImage {
+  id        String              @id @default(cuid())
+  productId String
+  product   ProductAnnouncement @relation(fields: [productId], references: [id], onDelete: Cascade)
+  imageUrl  String
+  altText   String?
+  sortOrder Int                 @default(0)
+  createdAt DateTime            @default(now())
+
+  @@index([productId])
 }
 
 model AuditLog {

@@ -13,7 +13,21 @@ export const updateCustomerSchema = z.object({
   params: z.object({ id: z.string().min(1) }),
   body: z.object({
     name: z.string().min(1).optional(),
+    phone: z.string().min(6).optional(),
     notes: z.string().nullable().optional(),
     isSubscribed: z.boolean().optional()
   })
+});
+
+export const createCustomerSchema = z.object({
+  body: z.object({
+    name: z.string().min(1).optional(),
+    phone: z.string().min(6),
+    notes: z.string().optional(),
+    isSubscribed: z.boolean().optional()
+  })
+});
+
+export const customerIdParamSchema = z.object({
+  params: z.object({ id: z.string().min(1) })
 });

@@ -3,7 +3,11 @@ import { prisma } from "../config/prisma";
 
 export const campaignRepository = {
   create: (data: Prisma.CampaignCreateInput) => prisma.campaign.create({ data }),
-  list: () => prisma.campaign.findMany({ orderBy: { createdAt: "desc" }, include: { _count: { select: { recipients: true } } } }),
+  list: () =>
+    prisma.campaign.findMany({
+      orderBy: { createdAt: "desc" },
+      include: { _count: { select: { recipients: true } }, recipients: { select: { status: true } } }
+    }),
   findById: (id: string) =>
     prisma.campaign.findUnique({
       where: { id },
@@ -11,6 +15,8 @@ export const campaignRepository = {
     }),
   updateStatus: (id: string, status: CampaignStatus, sentAt?: Date) =>
     prisma.campaign.update({ where: { id }, data: { status, sentAt } }),
+  subscribedRecipientCount: () => prisma.customer.count({ where: { isSubscribed: true } }),
+  existingRecipientCount: (campaignId: string) => prisma.campaignRecipient.count({ where: { campaignId } }),
   createRecipientsForSubscribedCustomers: async (campaignId: string) => {
     const customers = await prisma.customer.findMany({ where: { isSubscribed: true }, select: { id: true } });
     if (customers.length === 0) return [];
@@ -40,5 +46,11 @@ export const campaignRepository = {
           ? { failedAt: new Date() }
           : {};
     return prisma.campaignRecipient.updateMany({ where: { providerMessageId }, data: { status, ...timestamps } });
-  }
+  },
+  recent: (take = 8) =>
+    prisma.campaign.findMany({
+      orderBy: { createdAt: "desc" },
+      take,
+      include: { _count: { select: { recipients: true } }, recipients: { select: { status: true } } }
+    })
 };
