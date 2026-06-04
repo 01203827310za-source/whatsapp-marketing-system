@@ -64,6 +64,7 @@ export const createApp = () => {
   app.use("/api/analytics", analyticsRouter);
   app.use("/api/users", userRouter);
   app.use("/api/settings", settingsRouter);
+  app.use("/api/webhooks/whatsapp", webhookRouter);
   app.use("/webhook/whatsapp", webhookRouter);
   app.use(errorMiddleware);
 
