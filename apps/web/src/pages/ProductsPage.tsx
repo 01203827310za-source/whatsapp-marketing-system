@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ImagePlus, Plus, Trash2, Upload } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { Edit2, ImagePlus, Plus, Send, Trash2, Upload, X } from "lucide-react";
+import { type FormEvent, useEffect, useState } from "react";
 import { api, getApiErrorDetails, getApiErrorMessage, unwrap } from "../lib/api";
 import { Card, PageTitle } from "../ui/Card";
 
@@ -15,6 +15,8 @@ type Product = {
   category: Category | null;
   gallery: { id: string; imageUrl: string; altText: string | null }[];
 };
+type Analytics = { cards?: { subscribedCustomers?: number } };
+type SendProductResult = { campaign: { id: string; title: string }; queued: number };
 
 const emptyProduct = {
   productName: "",
@@ -25,15 +27,29 @@ const emptyProduct = {
   categoryId: ""
 };
 
+const formatPrice = (value: string | number | null | undefined) => (value === null || value === undefined || value === "" ? "" : `${value}`);
+
 export const ProductsPage = () => {
   const queryClient = useQueryClient();
   const [productForm, setProductForm] = useState(emptyProduct);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [categoryName, setCategoryName] = useState("");
   const [galleryTarget, setGalleryTarget] = useState<string | null>(null);
   const [galleryUrl, setGalleryUrl] = useState("");
+  const [sendTarget, setSendTarget] = useState<Product | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   const { data: products } = useQuery({ queryKey: ["products"], queryFn: () => api.get("/api/products").then(unwrap<Product[]>) });
   const { data: categories } = useQuery({ queryKey: ["product-categories"], queryFn: () => api.get("/api/products/categories").then(unwrap<Category[]>) });
+  const { data: analytics } = useQuery({ queryKey: ["analytics"], queryFn: () => api.get("/api/analytics").then(unwrap<Analytics>) });
+
+  const subscribedRecipients = analytics?.cards?.subscribedCustomers ?? 0;
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(null), 5000);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
 
   const uploadImage = useMutation({
     mutationFn: (file: File) => {
@@ -61,6 +77,25 @@ export const ProductsPage = () => {
     }
   });
 
+  const updateProduct = useMutation({
+    mutationFn: (values: typeof emptyProduct & { id: string }) =>
+      api
+        .patch(`/api/products/${values.id}`, {
+          productName: values.productName,
+          description: values.description,
+          price: Number(values.price),
+          discountPrice: values.discountPrice ? Number(values.discountPrice) : null,
+          imageUrl: values.imageUrl || undefined,
+          categoryId: values.categoryId || null
+        })
+        .then(unwrap),
+    onSuccess: () => {
+      setEditingProductId(null);
+      setProductForm(emptyProduct);
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    }
+  });
+
   const createCategory = useMutation({
     mutationFn: (name: string) => api.post("/api/products/categories", { name }).then(unwrap),
     onSuccess: () => {
@@ -74,6 +109,17 @@ export const ProductsPage = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["products"] })
   });
 
+  const sendProduct = useMutation({
+    mutationFn: (id: string) => api.post(`/api/products/${id}/send`).then(unwrap<SendProductResult>),
+    onSuccess: (result) => {
+      setSendTarget(null);
+      setToast(`تم إرسال حملة ${result.campaign.title} إلى ${result.queued} عميل`);
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+      queryClient.invalidateQueries({ queryKey: ["analytics"] });
+    }
+  });
+
   const addGalleryImage = useMutation({
     mutationFn: (input: { productId: string; imageUrl: string }) => api.post(`/api/products/${input.productId}/gallery`, { imageUrl: input.imageUrl }).then(unwrap),
     onSuccess: () => {
@@ -83,22 +129,54 @@ export const ProductsPage = () => {
     }
   });
 
-  const createProductDetails = getApiErrorDetails(createProduct.error);
+  const productMutation = editingProductId ? updateProduct : createProduct;
+  const productErrorDetails = getApiErrorDetails(productMutation.error);
   const handleCreateProduct = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    createProduct.mutate(productForm);
+    if (editingProductId) updateProduct.mutate({ ...productForm, id: editingProductId });
+    else createProduct.mutate(productForm);
+  };
+  const startEditing = (product: Product) => {
+    setEditingProductId(product.id);
+    setProductForm({
+      productName: product.productName,
+      description: product.description,
+      price: formatPrice(product.price),
+      discountPrice: formatPrice(product.discountPrice),
+      imageUrl: product.imageUrl ?? "",
+      categoryId: product.category?.id ?? ""
+    });
+  };
+  const cancelEditing = () => {
+    setEditingProductId(null);
+    setProductForm(emptyProduct);
   };
 
   return (
     <>
       <PageTitle title="Products" />
+      {toast ? (
+        <div className="fixed right-4 top-4 z-50 flex max-w-sm items-center gap-3 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 shadow-lg">
+          <span className="min-w-0 flex-1">{toast}</span>
+          <button className="focus-ring rounded-md p-1" type="button" onClick={() => setToast(null)} aria-label="Dismiss notification">
+            <X size={16} />
+          </button>
+        </div>
+      ) : null}
       <div className="grid gap-4 xl:grid-cols-[420px_1fr]">
         <div className="grid gap-4">
           <Card>
             <form className="grid gap-3" onSubmit={handleCreateProduct}>
-              <div>
-                <h3 className="text-base font-semibold">Add product</h3>
-                <p className="text-sm text-slate-500">Upload an image, assign a category, and keep a gallery for campaigns.</p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-semibold">{editingProductId ? "Edit product" : "Add product"}</h3>
+                  <p className="text-sm text-slate-500">Upload an image, assign a category, and keep a gallery for campaigns.</p>
+                </div>
+                {editingProductId ? (
+                  <button className="focus-ring rounded-md border p-2 text-slate-600" type="button" onClick={cancelEditing} aria-label="Cancel editing">
+                    <X size={16} />
+                  </button>
+                ) : null}
               </div>
               <input className="focus-ring rounded-md border px-3 py-2" placeholder="Product name" value={productForm.productName} onChange={(event) => setProductForm({ ...productForm, productName: event.target.value })} required />
               <textarea className="focus-ring min-h-24 rounded-md border px-3 py-2" placeholder="Description" value={productForm.description} onChange={(event) => setProductForm({ ...productForm, description: event.target.value })} required />
@@ -126,18 +204,18 @@ export const ProductsPage = () => {
               {uploadImage.isPending ? <p className="rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-600">Uploading image...</p> : null}
               {uploadImage.isError ? <p className="rounded-md border border-berry/30 bg-berry/10 px-3 py-2 text-sm text-berry">{getApiErrorMessage(uploadImage.error, "Image upload failed")}</p> : null}
               {productForm.imageUrl ? <img src={productForm.imageUrl} alt="Uploaded product preview" className="h-44 w-full rounded-md object-cover" /> : null}
-              {createProduct.isError ? (
+              {productMutation.isError ? (
                 <div className="rounded-md border border-berry/30 bg-berry/10 px-3 py-2 text-sm text-berry">
-                  <p>{getApiErrorMessage(createProduct.error, "Product could not be created")}</p>
-                  {createProductDetails.length ? (
+                  <p>{getApiErrorMessage(productMutation.error, "Product could not be saved")}</p>
+                  {productErrorDetails.length ? (
                     <ul className="mt-2 list-disc pl-5">
-                      {createProductDetails.map((detail, index) => <li key={`${detail.field ?? "field"}-${index}`}>{detail.field ? `${detail.field}: ` : ""}{detail.message}</li>)}
+                      {productErrorDetails.map((detail, index) => <li key={`${detail.field ?? "field"}-${index}`}>{detail.field ? `${detail.field}: ` : ""}{detail.message}</li>)}
                     </ul>
                   ) : null}
                 </div>
               ) : null}
-              <button className="focus-ring inline-flex items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white" disabled={createProduct.isPending || uploadImage.isPending}>
-                <Plus size={16} /> Save product
+              <button className="focus-ring inline-flex items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white" disabled={productMutation.isPending || uploadImage.isPending}>
+                <Plus size={16} /> {editingProductId ? "Save changes" : "Save product"}
               </button>
             </form>
           </Card>
@@ -168,9 +246,6 @@ export const ProductsPage = () => {
                   <p className="text-xs uppercase tracking-wide text-slate-500">{product.category?.name ?? "Uncategorized"}</p>
                   <h3 className="mt-1 font-bold">{product.productName}</h3>
                 </div>
-                <button className="focus-ring rounded-md border p-2 text-berry" type="button" onClick={() => deleteProduct.mutate(product.id)} aria-label={`Delete ${product.productName}`}>
-                  <Trash2 size={16} />
-                </button>
               </div>
               <p className="mt-2 line-clamp-3 text-sm text-slate-600">{product.description}</p>
               <p className="mt-3 font-semibold">
@@ -188,10 +263,52 @@ export const ProductsPage = () => {
                   <button className="focus-ring rounded-md bg-accent px-3 py-2 text-sm text-white">Add</button>
                 </form>
               ) : null}
+              <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                <button className="focus-ring inline-flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold text-slate-700" type="button" onClick={() => startEditing(product)}>
+                  <Edit2 size={16} /> Edit
+                </button>
+                <button className="focus-ring inline-flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold text-berry" type="button" onClick={() => deleteProduct.mutate(product.id)} disabled={deleteProduct.isPending}>
+                  <Trash2 size={16} /> Delete
+                </button>
+                <button className="focus-ring inline-flex items-center justify-center gap-2 rounded-md bg-accent px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={() => { sendProduct.reset(); setSendTarget(product); }} disabled={sendProduct.isPending}>
+                  <Send size={16} /> إرسال عبر واتساب
+                </button>
+              </div>
             </Card>
           ))}
         </div>
       </div>
+      {sendTarget ? (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/50 p-4">
+          <div className="w-full max-w-md rounded-md bg-white p-5 shadow-xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-bold">إرسال عبر واتساب</h3>
+                <p className="mt-1 text-sm text-slate-500">{sendTarget.productName}</p>
+              </div>
+              <button className="focus-ring rounded-md border p-2 text-slate-600" type="button" onClick={() => setSendTarget(null)} aria-label="Close confirmation">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="mt-4 rounded-md bg-slate-100 p-4">
+              <p className="text-sm text-slate-500">Recipients</p>
+              <p className="mt-1 text-3xl font-bold">{subscribedRecipients}</p>
+            </div>
+            {sendProduct.isError ? <p className="mt-3 rounded-md border border-berry/30 bg-berry/10 px-3 py-2 text-sm text-berry">{getApiErrorMessage(sendProduct.error, "Campaign could not be sent")}</p> : null}
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <button className="focus-ring rounded-md border px-4 py-2 text-sm font-semibold" type="button" onClick={() => setSendTarget(null)}>Cancel</button>
+              <button
+                className="focus-ring inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                type="button"
+                disabled={subscribedRecipients === 0 || sendProduct.isPending}
+                onClick={() => sendProduct.mutate(sendTarget.id)}
+              >
+                <Send size={16} /> Confirm send
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </>
   );
 };

@@ -26,6 +26,7 @@ productRouter.post("/uploads", requirePermission("campaigns:manage"), upload.sin
 productRouter.get("/categories", requirePermission("campaigns:create"), asyncHandler(productController.categories));
 productRouter.post("/categories", requirePermission("campaigns:manage"), validate(categorySchema), asyncHandler(productController.createCategory));
 productRouter.delete("/categories/:id", requirePermission("campaigns:manage"), validate(productIdParamSchema), asyncHandler(productController.deleteCategory));
+productRouter.post("/:id/send", requirePermission("campaigns:manage"), validate(productIdParamSchema), asyncHandler(productController.send));
 productRouter.patch("/:id", requirePermission("campaigns:manage"), validate(updateProductSchema), asyncHandler(productController.update));
 productRouter.delete("/:id", requirePermission("campaigns:manage"), validate(productIdParamSchema), asyncHandler(productController.remove));
 productRouter.post("/:id/gallery", requirePermission("campaigns:manage"), validate(galleryImageSchema), asyncHandler(productController.addGalleryImage));

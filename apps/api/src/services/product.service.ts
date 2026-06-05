@@ -4,6 +4,18 @@ import { productRepository } from "../repositories/product.repository";
 import { HttpError } from "../utils/http";
 import { campaignService } from "./campaign.service";
 
+const formatProductMessage = (input: {
+  productName: string;
+  description: string;
+  price: Prisma.Decimal | number;
+  discountPrice?: Prisma.Decimal | number | null;
+}) => {
+  const price = input.price.toString();
+  const discountPrice = input.discountPrice?.toString();
+  const priceLine = discountPrice ? `Sale price: ${discountPrice} instead of ${price}` : `Price: ${price}`;
+  return `${input.productName}\n${input.description}\n${priceLine}`;
+};
+
 export const productService = {
   async create(input: {
     productName: string;
@@ -67,10 +79,9 @@ export const productService = {
     categoryId?: string;
     createdById: string;
   }) {
-    const priceLine = input.discountPrice ? `Sale price: ${input.discountPrice} instead of ${input.price}` : `Price: ${input.price}`;
-    const message = `${input.productName}\n${input.description}\n${priceLine}`;
+    const message = formatProductMessage(input);
     const campaign = await campaignService.create({
-      type: CampaignType.ANNOUNCEMENT,
+      type: CampaignType.PRODUCT_ANNOUNCEMENT,
       title: input.productName,
       message,
       imageUrl: input.imageUrl,
@@ -89,6 +100,26 @@ export const productService = {
     });
     await campaignService.queueCampaign(campaign.id);
     return { product, campaign };
+  },
+
+  async sendProduct(id: string, createdById: string) {
+    const product = await productRepository.findById(id);
+    if (!product) throw new HttpError(404, "Product not found");
+
+    const campaign = await campaignService.create({
+      type: CampaignType.PRODUCT_ANNOUNCEMENT,
+      title: product.productName,
+      message: formatProductMessage(product),
+      imageUrl: product.imageUrl ?? undefined,
+      createdById
+    });
+    const queue = await campaignService.queueCampaign(campaign.id);
+
+    const updatedProduct = await productRepository.update(id, {
+      campaign: { connect: { id: campaign.id } }
+    });
+
+    return { product: updatedProduct, campaign, queued: queue.queued };
   },
 
   list: () => productRepository.list(),

@@ -19,6 +19,7 @@ enum CampaignType {
   DISCOUNT
   OFFER
   ANNOUNCEMENT
+  PRODUCT_ANNOUNCEMENT
 }
 
 enum CampaignStatus {

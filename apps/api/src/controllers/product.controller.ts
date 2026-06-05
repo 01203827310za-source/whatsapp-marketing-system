@@ -29,6 +29,15 @@ export const productController = {
     await audit(req, "product.published", "ProductAnnouncement", result.product.id, req.body);
     res.status(201).json(ok(result));
   },
+  async send(req: Request, res: Response) {
+    if (!req.user) throw new HttpError(401, "Authentication required");
+    const result = await productService.sendProduct(req.params.id, req.user.id);
+    await audit(req, "product.sent", "ProductAnnouncement", result.product.id, {
+      campaignId: result.campaign.id,
+      queued: result.queued
+    });
+    res.status(201).json(ok(result));
+  },
   async uploadImage(req: Request, res: Response) {
     if (!req.file) throw new HttpError(422, "Image file is required");
     res.status(201).json(ok(await uploadService.uploadImage(req.file)));
